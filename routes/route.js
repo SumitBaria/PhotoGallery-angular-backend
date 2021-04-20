@@ -97,10 +97,10 @@ router.post("/:user_id/image",upload.single('image'), async (req, res) => {
 
 router.delete("/:user_id/image/:photo_id", async (req,res) => {
   try {
-    const photoObj = await Photos.findById(req.params.photo_id)
-    fs.unlink('./assets/'+photoObj.imgname);
-    const a1 = await Photos.findByIdAndDelete(req.params.photo_id);
-    res.json(a1);
+      const photoObj = await Photos.findById(req.params.photo_id)
+      fs.unlinkSync('./assets/'+photoObj.imgname)
+      photoObj.delete()
+      res.send("deleted" + photoObj.imgname)
   } catch (err) {
     res.send("error ocuured ");
   }
