@@ -2,7 +2,8 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/users");
 const Photos = require("../models/photos");
-
+const path = require('path');
+const fs = require('fs')
 router.get("/", async (req, res) => {
   try {
     const users = await User.find();
@@ -62,10 +63,26 @@ router.get("/:user_id/image", async (req, res) => {
   }
 });
 
-router.post("/:user_id/image", async (req, res) => {
+
+var multer = require('multer');
+ 
+var storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, path.join("./assets"))
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now().toString() + "-" + req.params.user_id + "-" + file.originalname)
+
+    }
+});
+ 
+var upload = multer({ storage: storage });
+
+
+
+router.post("/:user_id/image",upload.single('image'), async (req, res) => {
   const image = new Photos({
-    img: req.body.img,
-    name: req.body.name,
+    imgname: req.file.filename,
     caption: req.body.caption,
     user_id: req.params.user_id,
   });
@@ -77,5 +94,16 @@ router.post("/:user_id/image", async (req, res) => {
     res.send("err " + err);
   }
 });
+
+router.delete("/:user_id/image/:photo_id", async (req,res) => {
+  try {
+    const photoObj = await Photos.findById(req.params.photo_id)
+    fs.unlink('./assets/'+photoObj.imgname);
+    const a1 = await Photos.findByIdAndDelete(req.params.photo_id);
+    res.json(a1);
+  } catch (err) {
+    res.send("error ocuured ");
+  }
+})
 
 module.exports = router;
