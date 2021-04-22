@@ -2,6 +2,9 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/users");
 const Photos = require("../models/photos");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 
 router.get("/", async (req, res) => {
   try {
@@ -18,6 +21,7 @@ router.get("/:id", async (req, res) => {
     res.json(aliens);
   } catch (err) {
     res.send("error", err);
+    console.log(err);
   }
 });
 
@@ -33,6 +37,17 @@ router.post("/", async (req, res) => {
     res.json(u1);
   } catch (err) {
     res.send("error ocuured ");
+  }
+});
+
+router.post("/auth", async (req, res) => {
+  try {
+    const u1 = await user.find({
+      email_id: req.body.email_id,
+    });
+    res.json(u1);
+  } catch (err) {
+    res.send("error ocuured " + err);
   }
 });
 
@@ -62,10 +77,23 @@ router.get("/:user_id/image", async (req, res) => {
   }
 });
 
-router.post("/:user_id/image", async (req, res) => {
+var storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join("./assets"));
+  },
+  filename: (req, file, cb) => {
+    cb(
+      null,
+      Date.now().toString() + "-" + req.params.user_id + "-" + file.originalname
+    );
+  },
+});
+
+const upload = multer({ storage: storage });
+
+router.post("/:user_id/image", upload.single("image"), async (req, res) => {
   const image = new Photos({
-    img: req.body.img,
-    name: req.body.name,
+    name: req.file.filename,
     caption: req.body.caption,
     user_id: req.params.user_id,
   });
@@ -75,6 +103,17 @@ router.post("/:user_id/image", async (req, res) => {
     res.json(photos);
   } catch (err) {
     res.send("err " + err);
+  }
+});
+
+router.delete("/:user_id/image/:photo_id", async (req, res) => {
+  try {
+    const photoObj = await Photos.findById(req.params.photo_id);
+    fs.unlinkSync("./assets/" + photoObj.name);
+    photoObj.delete();
+    res.send("deleted " + photoObj.name);
+  } catch (err) {
+    res.send("error ocuured " + err);
   }
 });
 
